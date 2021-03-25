@@ -1,38 +1,22 @@
 #!/usr/bin/env python3
-# juanro04@ucm.es
 
 import requests
 import json
 import random
-import time
 import sys
 
-import chess # python-chess
+# Must install python-chess for the following
+import chess
 import chess.engine
 
-#TOKEN = 'CC06q69Dzr1YZJ1i'
-#NAME  = 'henr-chinaski'
+
+# Global variables
+
 TOKEN = 'KAYCsLsYPDllbW53'
 NAME  = 'demegara'
 API   = 'https://lichess.org/api/'
 AUTH  = { 'Authorization': 'Bearer ' + TOKEN }
 
-#stockfish = chess.engine.SimpleEngine.popen_uci('../opening-trainer/Stockfish/src/stockfish')
-#stockfish.configure({"Threads": 4})
-
-# def analyze(board, ms):
-
-#     global stockfish
-#     limit = chess.engine.Limit(time = ms / 1000)
-#     #limit = chess.engine.Limit(depth = 2)
-#     info = stockfish.analyse(board, limit)
-
-#     try:
-#         best = info['pv'][0]
-#     except:
-#         best = None
-
-#     return best
 
 def challenge_user(username, rated = False, seconds = 300, increment = 0):
     '''
@@ -83,92 +67,95 @@ def wait_for_starting_game(gameID):
         counter = 0
         for line in answer.iter_lines():
 
-            # If the challenge has not been accepted after 5 cycles, cancel it
+            # If the challenge has not been accepted after 3 cycles, cancel it
             counter += 1
-            if counter > 5:
+            if counter >= 3:
                 cancel_challenge(gameID)
                 s.close()
                 return False
 
-            # Continue if there is no new events
-            if len(line) == 0:
-                continue
+            if line:
+                info = json.loads(line)
 
-            info = json.loads(line)
+                if info.get('type') == 'gameStart' and info.get('game').get('id') == gameID:
+                    s.close()
+                    return True
 
-            if info.get('type') == 'gameStart' and info.get('game').get('id') == gameID:
-                s.close()
-                return True
-
-            elif info.get('type') == 'challengeDeclined' and info.get('challenge').get('id') == gameID:
-                s.close()
-                return False
+                elif info.get('type') == 'challengeDeclined' and info.get('challenge').get('id') == gameID:
+                    s.close()
+                    return False
 
     s.close()
     return False
 
-def play_game(gameID):
+
+def play_game(gameID, moveSelector):
+    '''
+      Play a game which has started.
+        Input:
+             gameID (game identifier)
+
+        No output
+    '''
 
     s = requests.Session()
+
     with s.get(API + 'bot/game/stream/' + gameID, headers = AUTH, stream = True) as answer:
 
         for line in answer.iter_lines():
             if line:
+                print(line, flush = True)
                 info = json.loads(line)
-
-                print(info, flush=True)
-
-                if info.get('error'):
-#                    continue
-                    time.sleep(5)
-                    play_game(gameID)
-                    return
-
                 state = info.get('state')
 
+                # Get the color our BOT is playing with
                 if state:
                     color = info.get('white').get('id') == NAME
-                    print('COLOR', color)
 
                 else:
                     state = info
 
+                # If the game is finished, terminate
                 if state.get('status') != 'started':
+                    s.close()
                     return
 
                 moves = state.get('moves', '')
 
+                # FIXME: It would be good not to go through all moves each time
                 b = chess.Board()
-
                 if len(moves) > 0:
                     for move in moves.split(' '):
                         b.push_uci(move)
 
+                # Continue the loop if it is not the BOT's turn
                 if b.turn != color:
                     continue
 
-                m = random.choice([m for m in b.legal_moves])
-                #m = analyze(b, 1000)
+                # Pick a move using the moveSelector
+                m = moveSelector(b)
 
                 requests.post(API + 'bot/game/' + gameID + '/move/' + str(m), headers = AUTH)
-
-                print(b, flush=True)
 
     s.close()
 
 
+def randomMove(board):
+    '''
+      Pick a random move from the given board
+        Input:
+             board (chess.Board type, from python-chess)
+
+        Output:
+             move (chess.Move.from_uci type, from python-chess)
+    '''
+    return random.choice([m for m in board.legal_moves])
+
+
 if __name__ == '__main__':
 
-    try:
-        user = sys.argv[1]
-    except:
-        user = 'ambrona'
+    user = sys.argv[1]
+    gameID = challenge_user(user, increment = 3, rated = False)
 
-    gameID = challenge_user(user)
-
-    a = wait_for_starting_game(gameID)
-    print("HOLA", a, flush = True)
-    if a:
-        play_game(gameID)
-
-    print("HERE")
+    if wait_for_starting_game(gameID):
+        play_game(gameID, randomMove)
