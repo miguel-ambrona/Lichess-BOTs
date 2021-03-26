@@ -228,18 +228,18 @@ def weak_engine(board):
 
     # If there is only a good move, play it
 
-    moves = analyze(board, searchDepth = 10, outputInfo = True, multiPV = 2)
+    moves = analyze(board, searchDepth = 10, outputInfo = True, multiPV = 7)
+    refScore = moves[0]['score']
 
-    if len(moves) == 1 or moves[0]['score'] - moves[1]['score'] > 300:
-        return moves[0]['move']
+    N = 0
+    for move in moves:
+        print(refScore - move['score'])
+        if refScore - move['score'] < 300:
+            N += 1
 
-    u = random.random()
-
-    if u < 2/3:
-        return analyze(board, 2)
-
-    else:
-        return random_move(board)
+    print("N: ", N)
+    i = random.randint(0, N-1)
+    return moves[i]['move']
 
 
 def simpleMessenger(board):
