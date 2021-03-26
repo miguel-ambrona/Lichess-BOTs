@@ -12,8 +12,10 @@ import chess.engine
 
 # Global variables
 
-TOKEN = 'KAYCsLsYPDllbW53'
-NAME  = 'demegara'
+#TOKEN = 'KAYCsLsYPDllbW53'
+#NAME  = 'demegara'
+TOKEN = 'oaUsKX1NPwk1PyBg'
+NAME  = 'clubajedrezchamberi'
 API   = 'https://lichess.org/api/'
 AUTH  = { 'Authorization': 'Bearer ' + TOKEN }
 
@@ -228,13 +230,13 @@ def weak_engine(board):
 
     # If there is only a good move, play it
 
-    moves = analyze(board, searchDepth = 10, outputInfo = True, multiPV = 7)
+    moves = analyze(board, searchDepth = 10, outputInfo = True, multiPV = 9)
     refScore = moves[0]['score']
 
     N = 0
     for move in moves:
-        print(refScore - move['score'])
-        if refScore - move['score'] < 300:
+        print(refScore - move['score'], move['move'])
+        if refScore - move['score'] < 250:
             N += 1
 
     print("N: ", N)
@@ -300,6 +302,10 @@ def wait_for_challenges():
                 if info.get('type') == 'gameStart':
 
                     gameID = info.get('game').get('id')
+
+                    if gameID == 'M1Xu7JqQ':
+                        continue
+
                     play_game(gameID, weak_engine, simpleMessenger)
     s.close()
 
