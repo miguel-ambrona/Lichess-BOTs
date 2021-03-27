@@ -69,6 +69,14 @@ def weak_engine(moves, clockSeconds):
     for move in moves:
         b.push_uci(move)
 
+    messages = {
+         1 : "Hola, soy uno de los Robots de la Academia de Ajedrez Chamberi.",
+         3 : "¡Buena partida!",
+         7 : "Por cierto, gracias por jugar conmigo."
+    }
+
+    msg = messages.get(b.fullmove_number, None)
+
     # Calculate the best moves
     moves = stockfish(b, searchDepth = 9, outputInfo = True, multiPV = 10)
     notHorrible = [m for m in moves if moves[0]['score'] - m['score'] < 500]
@@ -77,21 +85,21 @@ def weak_engine(moves, clockSeconds):
         move = book.randomBookMove(BOOK, b)
         if move:
             time.sleep(random.randint(0,3))
-            return move
+            return move, msg
 
     print ("SCORE:", moves[0]['score'])
 
     if -500000 < moves[0]['score'] < -900 and random.random() < 1/2:
-        return 'resign'
+        return 'resign', msg
 
     # If there is only one non-horrible move, play it immediately with some probability
     if len(notHorrible) == 1 and random.random() < 2/3:
-        return str(notHorrible[0]['move'])
+        return str(notHorrible[0]['move']), msg
 
     okMoves = [m for m in notHorrible if moves[0]['score'] - m['score'] < 200]
     # Make one of the okMoves with certain probability:
     if random.random() < 1/2:
-        return str(random.choice(okMoves)['move'])
+        return str(random.choice(okMoves)['move']), msg
 
     # Call our weak engine on depth 4 or 5:
     depth = 2
@@ -107,45 +115,15 @@ def weak_engine(moves, clockSeconds):
     if output not in [str(m['move']) for m in notHorrible]:
         print("Our move was horrible", output)
         print(okMoves)
-        return str(okMoves[-1]['move'])
+        return str(okMoves[-1]['move']), msg
 
-    return output
-
-
-def simpleMessenger(moves):
-
-    messages = [
-        "Hola, soy uno de los Robots de la Academia de Ajedrez Chamberí",
-        None,
-        "¡Buena partida!",
-        None, None, None,
-        "Gracias por jugar conmigo",
-        None, None,
-        "Creo que @analyze es una gran jugada",
-        "Pero no me hagas mucho caso"
-    ]
-
-    # Set the board
-    b = chess.Board()
-    for move in moves:
-        b.push_uci(move)
-
-    n = b.fullmove_number - 1
-
-    if not b.turn and n < len(messages):
-
-        msg = messages[n]
-
-        if msg and "@analyze" in msg:
-            move = stockfish(b, searchDepth = 10)
-            msg = msg.replace("@analyze", b.san(move))
-
-        return msg
+    return output, msg
 
 
 if __name__ == '__main__':
 
-    chamberiBot = myBot.Bot('ClubAjedrezChamberi', 'oaUsKX1NPwk1PyBg', weak_engine, simpleMessenger)
+    chamberiBot = myBot.Bot('ClubAjedrezChamberi', 'oaUsKX1NPwk1PyBg',
+                            weak_engine, "Aquí tienes 10 segundos, ¡úsalos bien!")
 
     try:
         user = sys.argv[1]
