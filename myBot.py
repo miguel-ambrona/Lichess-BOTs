@@ -32,7 +32,7 @@ class Bot(object):
         return "BOT %s with AUTH TOKEN %s" % (self.name, self.token[:3] + "..." + self.token[-3:])
 
 
-    def challenge_user(self, username, rated = False, seconds = 300, inc = 0):
+    def challenge_user(self, username, rated = False, seconds = 61, inc = 0):
         '''
           Challenge a user to a game.
             Input:
@@ -44,7 +44,8 @@ class Bot(object):
             Output:
                    gameID (challenge identifier, which will be the game identifier if accepted)
         '''
-        params = { 'rated': str(rated).lower(), 'clock.limit': seconds, 'clock.increment': inc }
+        params = { 'rated': str(rated).lower(), 'clock.limit': seconds,
+                   'clock.increment': inc, 'color' : 'random' }
         ans = requests.post(self.api + 'challenge/' + username, headers = self.auth, data = params)
         info = json.loads(ans.text)
         return info['challenge']['id']
@@ -84,6 +85,16 @@ class Bot(object):
                  gameID (game identifier)
         '''
         requests.post(self.api + 'bot/game/' + gameID + '/abort', headers = self.auth)
+
+
+    def add_time(self, gameID, seconds):
+        '''
+          Add time to the opponent clock.
+            Input:
+                 gameID (game identifier)
+                seconds (int: seconds to be add)
+        '''
+        requests.post(self.api + 'round/' + gameID + '/add-time/' + str(seconds), headers = self.auth)
 
 
     def wait_for_starting_game(self, gameID):
@@ -182,6 +193,14 @@ class Bot(object):
                     if m == 'resign':
                         self.resign_game(gameID)
                         break
+
+                    opponentMS = state.get('btime') if botIsWhite else state.get('wtime')
+                    if (opponentMS / 1000 < 15) and (clockMS / 1000 > 25):
+                        self.add_time(gameID, 10)
+                        parameters = { 'room' : 'player', 'text' : "Here is 10 sedoncs\nUse tehm wiesly!" }
+                        requests.post(self.api + 'bot/game/' + gameID + '/chat',
+                                      headers = self.auth, data = parameters)
+
 
                     requests.post(self.api + 'bot/game/' + gameID + '/move/' + m,
                                   headers = self.auth)
