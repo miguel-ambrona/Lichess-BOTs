@@ -70,58 +70,47 @@ def botam1k(moves, clockSeconds):
     if b.fullmove_number < 5:
         move = book.randomBookMove(BOOK, b)
         if move:
-            return move
+            return move, None
+
+
+    PV, seconds = (5, clockSeconds / 100)# if clockSeconds > 30 else (1, 0.1)
 
     # Calculate the best moves
-    moves = stockfish(b, seconds = clockSeconds / 100, outputInfo = True, multiPV = 5)
+    moves = stockfish(b, seconds = seconds, outputInfo = True, multiPV = PV)
     inTheDirt = [m for m in moves if m['score'] > 200]
 
     print(moves)
     print()
     print(inTheDirt)
 
-    if len(inTheDirt) and b.fullmove_number <= 70:
-        print(inTheDirt[-1]['score'])
-        return str(inTheDirt[-1]['move'])
+    messages = {
+         1 : "Hello, the name's ANIC, BOT AM1K!",
+         5 : "I was mint to be called BOT ANIK but craetor and I have spelling porblems",
+         7 : "I bury my opponents, that's why I am Botamik",
+        35 : "I will checkmate you in 50 moves",
+    }
 
-    else:
-        print(moves[0]['score'])
-        return str(moves[0]['move'])
+    msg = messages.get(b.fullmove_number, None)
+    answer = moves[0] if len(inTheDirt) == 0 or b.fullmove_number >= 70 else inTheDirt[-1]
 
+    if not msg and random.random() < 1/3:
+        if answer != moves[0]:
+            good, bad = b.san(moves[0]['move']), b.san(inTheDirt[-1]['move'])
+            msg1 = "You wanted me to play %s, I think %s is more fun" % (good, bad)
+            msg2 = "%s was good, %s is nasty" % (good, bad)
+            msg3 = "I soemtiems forget how to play"
+            msg4 = "I have to make this gaem interesting"
+            msg5 = "I can baet you evn after such a blunder"
+            msg6 = "Alrihgt! I wheel give you some chance"
 
-def botam1kMsg(moves):
+            msg = random.choice([msg1, msg2, msg3, msg4, msg5, msg6])
 
-    messages = [
-        "Hi, I am a Bonatic!",
-        None,
-        "Let the luck be with you!",
-        None, None, None, None, None,
-        "I know you will give up very soon",
-        None, None, None, None, None, None,
-        "Still palying?",
-    ]
-
-    # Set the board
-    b = chess.Board()
-    for move in moves:
-        b.push_uci(move)
-
-    n = b.fullmove_number - 1
-
-    if not b.turn and n < len(messages):
-
-        msg = messages[n]
-
-        if msg and "@analyze" in msg:
-            move = stockfish(b, searchDepth = 10)
-            msg = msg.replace("@analyze", b.san(move))
-
-        return msg
+    return str(answer['move']), msg
 
 
 if __name__ == '__main__':
 
-    Botam1k = myBot.Bot('am1k', 'OsnjdrB8HWAEWtOv', botam1k, botam1kMsg)
+    Botam1k = myBot.Bot('am1k', 'OsnjdrB8HWAEWtOv', botam1k, "Here is 10 seconds, use them wisely")
 
     try:
         user = sys.argv[1]

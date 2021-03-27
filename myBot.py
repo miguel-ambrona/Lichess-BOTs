@@ -7,7 +7,7 @@ import time
 
 class Bot(object):
 
-    def __init__(self, name, token, moveSelector, chatMessenger):
+    def __init__(self, name, token, moveSelector, addTimeMessage):
         '''
           Bot object creator.
             Input:
@@ -25,14 +25,14 @@ class Bot(object):
         self.auth  = { 'Authorization': 'Bearer ' + token }
 
         self.moveSelector  = moveSelector
-        self.chatMessenger = chatMessenger
+        self.addTimeMessage = addTimeMessage
 
 
     def __str__(self):
         return "BOT %s with AUTH TOKEN %s" % (self.name, self.token[:3] + "..." + self.token[-3:])
 
 
-    def challenge_user(self, username, rated = False, seconds = 61, inc = 0):
+    def challenge_user(self, username, rated = False, seconds = 180, inc = 0):
         '''
           Challenge a user to a game.
             Input:
@@ -45,7 +45,7 @@ class Bot(object):
                    gameID (challenge identifier, which will be the game identifier if accepted)
         '''
         params = { 'rated': str(rated).lower(), 'clock.limit': seconds,
-                   'clock.increment': inc, 'color' : 'random' }
+                   'clock.increment': inc }
         ans = requests.post(self.api + 'challenge/' + username, headers = self.auth, data = params)
         info = json.loads(ans.text)
         return info['challenge']['id']
@@ -175,20 +175,22 @@ class Bot(object):
                     movesStr = state.get('moves', '')
                     moves = [] if len(movesStr) == 0 else movesStr.split(' ')
 
-                    # Possibly write in the chat
-                    msg = self.chatMessenger(moves)
-                    if msg:
-                        parameters = { 'room' : 'player', 'text' : msg }
-                        requests.post(self.api + 'bot/game/' + gameID + '/chat',
-                                      headers = self.auth, data = parameters)
-
                     # Continue the loop if it is not the BOT's turn
                     if (1 if botIsWhite else 0) == len(moves) % 2:
                         continue
 
                     # Pick a move using the moveSelector
                     clockMS = state.get('wtime') if botIsWhite else state.get('btime')
-                    m = self.moveSelector(moves, clockMS / 1000)
+                    m, msg = self.moveSelector(moves, clockMS / 1000)
+
+                    # Possibly write in the chat
+                    if msg:
+                        params1 = { 'room' : 'player', 'text' : msg }
+                        params2 = { 'room' : 'spectator', 'text' : msg }
+                        requests.post(self.api + 'bot/game/' + gameID + '/chat',
+                                      headers = self.auth, data = params1)
+                        requests.post(self.api + 'bot/game/' + gameID + '/chat',
+                                      headers = self.auth, data = params2)
 
                     if m == 'resign':
                         self.resign_game(gameID)
@@ -197,9 +199,12 @@ class Bot(object):
                     opponentMS = state.get('btime') if botIsWhite else state.get('wtime')
                     if (opponentMS / 1000 < 15) and (clockMS / 1000 > 25):
                         self.add_time(gameID, 10)
-                        parameters = { 'room' : 'player', 'text' : "Here is 10 sedoncs\nUse tehm wiesly!" }
+                        params1 = { 'room' : 'player', 'text' : self.addTimeMessage }
+                        params2 = { 'room' : 'spectator', 'text' : self.addTimeMessage }
                         requests.post(self.api + 'bot/game/' + gameID + '/chat',
-                                      headers = self.auth, data = parameters)
+                                      headers = self.auth, data = params1)
+                        requests.post(self.api + 'bot/game/' + gameID + '/chat',
+                                      headers = self.auth, data = params2)
 
 
                     requests.post(self.api + 'bot/game/' + gameID + '/move/' + m,
@@ -224,6 +229,10 @@ class Bot(object):
                     if info.get('type') == 'challenge':
 
                         gameID = info.get('challenge').get('id')
+
+                        if info.get('challenge').get('variant').get('key') != 'standard':
+                            continue
+
                         self.accept_challenge(gameID)
                         self.play_game(gameID)
 
