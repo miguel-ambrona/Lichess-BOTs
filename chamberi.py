@@ -88,9 +88,9 @@ def weak_engine(moves, clockSeconds):
     if len(notHorrible) == 1 and random.random() < 2/3:
         return str(notHorrible[0]['move'])
 
-    # Make one of the nonHorrible with certain probability:
+    okMoves = [m for m in notHorrible if moves[0]['score'] - m['score'] < 200]
+    # Make one of the okMoves with certain probability:
     if random.random() < 1/2:
-        okMoves = [m for m in notHorrible if moves[0]['score'] - m['score'] < 200]
         return str(random.choice(okMoves)['move'])
 
     # Call our weak engine on depth 4 or 5:
@@ -106,9 +106,8 @@ def weak_engine(moves, clockSeconds):
 
     if output not in [str(m['move']) for m in notHorrible]:
         print("Our move was horrible", output)
-        print(notHorrible)
-        idx = min(5, len(notHorrible)-1)
-        return str(notHorrible[idx]['move'])
+        print(okMoves)
+        return str(okMoves[-1]['move'])
 
     return output
 
