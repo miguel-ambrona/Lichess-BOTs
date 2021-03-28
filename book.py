@@ -155,7 +155,7 @@ def classifyMove(book, board, move):
 
     if moveInfo:
         n = moveInfo.get('numGames')
-        r = moves.index(move) + 1
+        r = [m[0] for m in moves].index(move) + 1
         output['num_games'] = n
         output['ranking'] = r
         output['is_good'] = is_good(N,n,r)
@@ -165,6 +165,6 @@ def classifyMove(book, board, move):
         output['ranking'] = 0
         output['is_good'] = False
 
-    output['top5'] = top5(bookmoves, N, moves, k = 5)
+    output['top5'] = top(bookmoves, N, moves, k = 5)
 
     return output
