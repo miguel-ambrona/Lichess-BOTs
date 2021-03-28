@@ -142,6 +142,8 @@ class Bot(object):
                     gameID (game identifier)
         '''
         s = requests.Session()
+
+        addedTime = False
         with s.get(self.api + 'bot/game/stream/' + gameID,
                    headers = self.auth, stream = True) as ans:
 
@@ -197,15 +199,16 @@ class Bot(object):
                         break
 
                     opponentMS = state.get('btime') if botIsWhite else state.get('wtime')
-                    if (opponentMS / 1000 < 15) and (clockMS / 1000 > 25):
+                    if (opponentMS / 1000 < 15) and (clockMS / 1000 > 30):
                         self.add_time(gameID, 10)
-                        params1 = { 'room' : 'player', 'text' : self.addTimeMessage }
-                        params2 = { 'room' : 'spectator', 'text' : self.addTimeMessage }
-                        requests.post(self.api + 'bot/game/' + gameID + '/chat',
-                                      headers = self.auth, data = params1)
-                        requests.post(self.api + 'bot/game/' + gameID + '/chat',
-                                      headers = self.auth, data = params2)
-
+                        if not addedTime:
+                            params1 = { 'room' : 'player', 'text' : self.addTimeMessage }
+                            params2 = { 'room' : 'spectator', 'text' : self.addTimeMessage }
+                            requests.post(self.api + 'bot/game/' + gameID + '/chat',
+                                          headers = self.auth, data = params1)
+                            requests.post(self.api + 'bot/game/' + gameID + '/chat',
+                                          headers = self.auth, data = params2)
+                        addedTime = True
 
                     requests.post(self.api + 'bot/game/' + gameID + '/move/' + m,
                                   headers = self.auth)
