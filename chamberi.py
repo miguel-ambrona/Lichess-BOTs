@@ -118,7 +118,7 @@ def weak_engine(moves, clockSeconds):
 
         else:
             print("MY TIME", clockSeconds)
-            time.sleep(clockSeconds / 100)
+            time.sleep(min(clockSeconds / 100, 10))
 
 
     if b.fullmove_number < 5:

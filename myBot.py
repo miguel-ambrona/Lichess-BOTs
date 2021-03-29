@@ -236,6 +236,9 @@ class Bot(object):
                         if info.get('challenge').get('variant').get('key') != 'standard':
                             continue
 
+                        if info.get('challenge').get('speed') == 'correspondence':
+                            continue
+
                         self.accept_challenge(gameID)
                         self.play_game(gameID)
 
@@ -243,7 +246,7 @@ class Bot(object):
 
                         gameID = info.get('game').get('id')
 
-                        if gameID == 'M1Xu7JqQ':
+                        if gameID in ['M1Xu7JqQ', '8LaciBFA']:
                             continue
 
                         self.play_game(gameID)
