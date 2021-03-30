@@ -61,7 +61,7 @@ def pp_move(board, uci_move):
     #san = san.replace('R','T').replace('K','R').replace('N','C').replace('
     return san
 
-def weak_engine(moves, clockSeconds):
+def weak_engine(moves, clockSeconds, oppSeconds):
     '''
       Weak engine that picks a move
         Input:
@@ -112,13 +112,21 @@ def weak_engine(moves, clockSeconds):
     notHorrible = [m for m in moves if moves[0]['score'] - m['score'] < 500]
 
     # Add an intentional delay
-    if clockSeconds > 60 and b.fullmove_number > 3:
+
+    if clockSeconds > oppSeconds and clockSeconds > 20:
+        time.sleep(random.randint(5,10))
+
+    elif clockSeconds > 60 and b.fullmove_number > 3:
         if len(notHorrible) <= 1:
             time.sleep(random.randint(0,3))
 
         else:
             print("MY TIME", clockSeconds)
-            time.sleep(min(clockSeconds / 100, 10))
+            wait = min(clockSeconds / 70, 10)
+            time.sleep(max(wait, 1))
+
+    else:
+        time.sleep(1)
 
 
     if b.fullmove_number < 5:
@@ -143,20 +151,23 @@ def weak_engine(moves, clockSeconds):
 
     okMoves = [m for m in notHorrible if moves[0]['score'] - m['score'] < 150]
     # Make one of the okMoves with certain probability:
-    if random.random() < 1/2:
+    if random.random() < 1/5:
         return str(random.choice(okMoves)['move']), msg
 
+    '''
     # Call our weak engine on depth 4 or 5:
-    depth = 2
+    depth = 1
     cmd = ("%d %s\n" % (depth, b.fen())).encode("utf-8")
     WEAKENGINE.stdin.write(cmd)
     WEAKENGINE.stdin.flush()
     output = WEAKENGINE.stdout.readline().strip().decode("utf-8")
-
     if output not in [str(m['move']) for m in notHorrible]:
         print("Our move was horrible", output)
         print(okMoves)
         return str(okMoves[-1]['move']), msg
+    '''
+
+    output = str(okMoves[-1]['move'])
 
     return output, msg
 

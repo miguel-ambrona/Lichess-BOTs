@@ -15,8 +15,10 @@ STOCKFISH = chess.engine.SimpleEngine.popen_uci('./Stockfish/src/stockfish')
 BOOK = chess.polyglot.open_reader("/usr/share/scid/books/elite.bin")
 
 CHOSEN_IDX = []
+SUDDEN = False
+SUDDEN2 = False
 
-def stockfish(board, seconds = 1, outputInfo = False, multiPV = 1):
+def stockfish(board, seconds = 1, Depth = None, outputInfo = False, multiPV = 1):
     '''
       Pick a move using Stockfish at a low depth
         Input:
@@ -27,7 +29,11 @@ def stockfish(board, seconds = 1, outputInfo = False, multiPV = 1):
     '''
 
     global STOCKFISH
-    limit = chess.engine.Limit(time = seconds)
+    if not Depth:
+        limit = chess.engine.Limit(time = seconds)
+
+    else:
+        limit = chess.engine.Limit(depth = Depth)
 
     info = STOCKFISH.analyse(board, limit, multipv = multiPV)
     output = []
@@ -53,7 +59,7 @@ def stockfish(board, seconds = 1, outputInfo = False, multiPV = 1):
         return output[0]
 
 
-def botam1k(moves, clockSeconds):
+def botam1k(moves, clockSeconds, oppSeconds):
     '''
       Weak engine that picks a move
         Input:
@@ -64,8 +70,12 @@ def botam1k(moves, clockSeconds):
     '''
 
     global CHOSEN_IDX
+    global SUDDEN
+    global SUDDEN2
     if len(moves) < 2:
         CHOSEN_IDX = []
+        SUDDEN = False
+        SUDDEN2 = False
 
     # Set the board
     b = chess.Board()
@@ -90,9 +100,17 @@ def botam1k(moves, clockSeconds):
 
     PV, seconds = (5, clockSeconds / 100)# if clockSeconds > 30 else (1, 0.1)
 
-    # Calculate the best moves
-    moves = stockfish(b, seconds = seconds, outputInfo = True, multiPV = PV)
-    inTheDirt = [m for m in moves if m['score'] > 200]
+    if clockSeconds > 30:
+
+        # Calculate the best moves
+        moves = stockfish(b, seconds = seconds, outputInfo = True, multiPV = PV)
+        inTheDirt = [m for m in moves if m['score'] > 200]
+
+    else:
+
+        moves = stockfish(b, Depth = 10, outputInfo = True)
+        moves = [moves]
+        inTheDirt = [moves[0]]
 
     print(moves)
     print()
@@ -122,6 +140,14 @@ def botam1k(moves, clockSeconds):
     b.push(answer['move'])
     if b.is_checkmate():
         msg = "I am the best! 😎" # Sunglasses
+
+    if clockSeconds < 30 and not SUDDEN:
+        SUDDEN = True
+        msg = "I waz playing with you like a cat with the food"
+
+    if clockSeconds < 30 and SUDDEN and not SUDDEN2:
+        SUDDEN2 = True
+        msg = "No more jokes!!!"
 
     return str(answer['move']), msg
 

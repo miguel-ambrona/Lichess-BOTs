@@ -184,7 +184,8 @@ class Bot(object):
 
                     # Pick a move using the moveSelector
                     clockMS = state.get('wtime') if botIsWhite else state.get('btime')
-                    m, msg = self.moveSelector(moves, clockMS / 1000)
+                    opponentMS = state.get('btime') if botIsWhite else state.get('wtime')
+                    m, msg = self.moveSelector(moves, clockMS / 1000, opponentMS / 1000)
 
                     # Possibly write in the chat
                     if msg:
@@ -199,7 +200,6 @@ class Bot(object):
                         self.resign_game(gameID)
                         break
 
-                    opponentMS = state.get('btime') if botIsWhite else state.get('wtime')
                     if (opponentMS / 1000 < 15) and (clockMS / 1000 > 30):
                         self.add_time(gameID, 10)
                         if not addedTime:
