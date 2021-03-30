@@ -250,8 +250,8 @@ class Bot(object):
 
                             gameID = info.get('game').get('id')
 
-                            if gameID in ['M1Xu7JqQ', '8LaciBFA']:
-                                continue
+                            #if gameID in ['M1Xu7JqQ', '8LaciBFA']:
+                            #    continue
 
                             thr = threading.Thread(target = self.play_game, args=[gameID])
                             thr.start()
