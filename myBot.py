@@ -4,6 +4,7 @@ import requests
 import json
 import time
 
+import threading
 
 class Bot(object):
 
@@ -226,28 +227,36 @@ class Bot(object):
 
             for line in ans.iter_lines():
                 if line:
-                    info = json.loads(line)
-                    print(info, flush = True)
+                    try:
+                        info = json.loads(line)
+                        print(info, flush = True)
 
-                    if info.get('type') == 'challenge':
+                        if info.get('type') == 'challenge':
 
-                        gameID = info.get('challenge').get('id')
+                            gameID = info.get('challenge').get('id')
 
-                        if info.get('challenge').get('variant').get('key') != 'standard':
-                            continue
+                            if info.get('challenge').get('variant').get('key') != 'standard':
+                                continue
 
-                        if info.get('challenge').get('speed') == 'correspondence':
-                            continue
+                            if info.get('challenge').get('speed') == 'correspondence':
+                                continue
 
-                        self.accept_challenge(gameID)
-                        self.play_game(gameID)
+                            self.accept_challenge(gameID)
 
-                    if info.get('type') == 'gameStart':
+                            thr = threading.Thread(target = self.play_game, args=[gameID])
+                            thr.start()
 
-                        gameID = info.get('game').get('id')
+                        if info.get('type') == 'gameStart':
 
-                        if gameID in ['M1Xu7JqQ', '8LaciBFA']:
-                            continue
+                            gameID = info.get('game').get('id')
 
-                        self.play_game(gameID)
+                            if gameID in ['M1Xu7JqQ', '8LaciBFA']:
+                                continue
+
+                            thr = threading.Thread(target = self.play_game, args=[gameID])
+                            thr.start()
+
+                    except Exception:
+                        pass
+
         s.close()

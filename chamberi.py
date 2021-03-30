@@ -165,7 +165,6 @@ if __name__ == '__main__':
 
     chamberiBot = myBot.Bot('ClubAjedrezChamberi', 'oaUsKX1NPwk1PyBg',
                             weak_engine, "Aquí tienes 10 segundos, ¡úsalos bien!")
-
     try:
         user = sys.argv[1]
         gameID = chamberiBot.challenge_user(user, rated = False)
@@ -173,7 +172,7 @@ if __name__ == '__main__':
         if chamberiBot.wait_for_starting_game(gameID):
             chamberiBot.play_game(gameID)
 
-    except:
+    except Exception:
         chamberiBot.wait_for_challenges()
 
 
