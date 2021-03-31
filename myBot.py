@@ -136,6 +136,19 @@ class Bot(object):
         return False
 
 
+    def write_in_chat(self, gameID, msg):
+        '''
+          Write text in the chat.
+            Input:
+                gameID (game identifier)
+                   msg (string: text to be sent / None)
+        '''
+        if msg:
+            for room in ['player', 'spectator']:
+                params = { 'room' : room, 'text' : msg }
+                requests.post(self.api + 'bot/game/' + gameID + '/chat', headers = self.auth, data = params)
+
+
     def play_game(self, gameID):
         '''
           Play a game which has started.
@@ -144,9 +157,9 @@ class Bot(object):
         '''
         s = requests.Session()
 
-        addedTime = False
-        with s.get(self.api + 'bot/game/stream/' + gameID,
-                   headers = self.auth, stream = True) as ans:
+        sentMessages = []
+
+        with s.get(self.api + 'bot/game/stream/' + gameID, headers = self.auth, stream = True) as ans:
 
             for line in ans.iter_lines():
                 if line:
@@ -159,7 +172,6 @@ class Bot(object):
                         continue
 
                     if state:
-
                         # Get the color our BOT is playing with
                         botIsWhite = info.get('white').get('id') == self.name.lower()
 
@@ -188,31 +200,22 @@ class Bot(object):
                     m, msg = self.moveSelector(moves, clockMS / 1000, opponentMS / 1000)
 
                     # Possibly write in the chat
-                    if msg:
-                        params1 = { 'room' : 'player', 'text' : msg }
-                        params2 = { 'room' : 'spectator', 'text' : msg }
-                        requests.post(self.api + 'bot/game/' + gameID + '/chat',
-                                      headers = self.auth, data = params1)
-                        requests.post(self.api + 'bot/game/' + gameID + '/chat',
-                                      headers = self.auth, data = params2)
+                    if not msg in sentMessages:
+                        sentMessages.append(msg)
+                        self.write_in_chat(gameID, msg)
 
                     if m == 'resign':
                         self.resign_game(gameID)
-                        break
+                        s.close()
+                        return
 
                     if (opponentMS / 1000 < 15) and (clockMS / 1000 > 30):
                         self.add_time(gameID, 10)
-                        if not addedTime:
-                            params1 = { 'room' : 'player', 'text' : self.addTimeMessage }
-                            params2 = { 'room' : 'spectator', 'text' : self.addTimeMessage }
-                            requests.post(self.api + 'bot/game/' + gameID + '/chat',
-                                          headers = self.auth, data = params1)
-                            requests.post(self.api + 'bot/game/' + gameID + '/chat',
-                                          headers = self.auth, data = params2)
-                        addedTime = True
+                        if not self.addTimeMessage in sentMessages:
+                            sentMessages.append(self.addTimeMessage)
+                            self.write_in_chat(gameID, self.addTimeMessage)
 
-                    requests.post(self.api + 'bot/game/' + gameID + '/move/' + m,
-                                  headers = self.auth)
+                    requests.post(self.api + 'bot/game/' + gameID + '/move/' + m, headers = self.auth)
 
         s.close()
 
@@ -222,12 +225,13 @@ class Bot(object):
           Continuously wait for challenges.
           When a challenge comes, accept it, play the game and continue.
         '''
-        s = requests.Session()
-        with s.get(self.api + 'stream/event', headers = self.auth, stream = True) as ans:
 
-            for line in ans.iter_lines():
-                if line:
-                    try:
+        try:
+            s = requests.Session()
+            with s.get(self.api + 'stream/event', headers = self.auth, stream = True) as ans:
+
+                for line in ans.iter_lines():
+                    if line:
                         info = json.loads(line)
                         print(info, flush = True)
 
@@ -250,13 +254,16 @@ class Bot(object):
 
                             gameID = info.get('game').get('id')
 
-                            #if gameID in ['M1Xu7JqQ', '8LaciBFA']:
-                            #    continue
-
                             thr = threading.Thread(target = self.play_game, args=[gameID])
                             thr.start()
 
-                    except Exception:
-                        pass
+        except Exception as s:
+            print(s)
+            try:
+                s.close()
+            except Exception:
+                pass
 
-        s.close()
+            time.sleep(60)
+            self.wait_for_challenges()
+
