@@ -116,7 +116,7 @@ def weak_engine(moves, clockSeconds, oppSeconds):
 
     # Add an intentional delay
 
-    if clockSeconds > oppSeconds and clockSeconds > 20:
+    if clockSeconds > oppSeconds and clockSeconds > 30:
         time.sleep(random.randint(5,10))
 
     elif clockSeconds > 60 and b.fullmove_number > 3:
@@ -124,7 +124,7 @@ def weak_engine(moves, clockSeconds, oppSeconds):
         time.sleep(max(wait, 1))
 
     else:
-        time.sleep(1)
+        pass
 
     if b.fullmove_number < 5:
         move = book.randomBookMove(BOOK, b)
